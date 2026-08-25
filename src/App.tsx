@@ -12,6 +12,7 @@ import Mirror from './ui/Mirror';
 import PinCreator from './ui/PinCreator';
 import PinEditor from './ui/PinEditor';
 import ThemeSelector from './ui/ThemeSelector';
+import UndoRedo from './ui/UndoRedo';
 import Generate from './ui/Generate';
 import Preview3D from './visualize/Preview3D';
 import Visualizer from './visualize/Visualizer';
@@ -21,6 +22,7 @@ export default function App() {
 		<div className="App">
 			<header className="App-header">
 				Dovetail Generator
+				<UndoRedo />
 			</header>
 			<div className="Body">
 				<div className="BodyLeft">

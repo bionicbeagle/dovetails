@@ -484,6 +484,9 @@ export default function Preview3D() {
 			observer.observe(mount);
 
 			const onKeyDown = (event: KeyboardEvent) => {
+				if (event.metaKey || event.ctrlKey || event.altKey) {
+					return;
+				}
 				const key = event.key.toLowerCase();
 				if (key === 'a' || key === 'b') {
 					event.preventDefault();
