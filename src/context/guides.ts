@@ -25,9 +25,9 @@ export const initGuides: ContextGuides = {
 	enabled: false,
 	spacing: 0,
 	from: From.Center,
-	dimensions: false,
-	matingBoard: false,
-	preview3d: false,
+	dimensions: true,
+	matingBoard: true,
+	preview3d: true,
 };
 
 export function useGuideLocations(): number[] {
