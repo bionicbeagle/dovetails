@@ -15,6 +15,7 @@ export const ContextGuidesSchema = z.object(
 		spacing: z.number(),
 		from: FromSchema,
 		dimensions: z.boolean(),
+		matingBoard: z.boolean(),
 	},
 );
 export type ContextGuides = z.infer<typeof ContextGuidesSchema>;
@@ -24,6 +25,7 @@ export const initGuides: ContextGuides = {
 	spacing: 0,
 	from: From.Center,
 	dimensions: false,
+	matingBoard: false,
 };
 
 export function useGuideLocations(): number[] {

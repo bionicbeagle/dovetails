@@ -1,5 +1,5 @@
 import {useRef, useState, useLayoutEffect} from 'react';
-import {Stage, Layer} from 'react-konva';
+import {Stage, Layer, Rect} from 'react-konva';
 
 import {Kind} from '../context/general';
 import {useStore} from '../context/store';
@@ -56,7 +56,7 @@ export default function Visualizer() {
 	const [
 		{
 			general: {material, cutter, unit, kind},
-			guides: {dimensions},
+			guides: {dimensions, matingBoard},
 			pins,
 			halfPins,
 		},
@@ -102,7 +102,33 @@ export default function Visualizer() {
 			cutterAngle: cutter.angle,
 			pixelsPerMM,
 			canvasColors,
+			// With the mating board shown, the cutouts between the
+			// tails read as its pins instead of empty space
+			maskColor: matingBoard
+				? canvasColors.matingBoard
+				: canvasColors.background,
 		};
+
+		// In half-blind mode the mating board's lap extends past the
+		// board end, so with the mating board shown we render that
+		// band above the board too
+		let lapBand = null;
+		if (matingBoard && kind === Kind.Half) {
+			const lapPx = (material.dovetailLength - material.thickness)
+				* pixelsPerMM;
+			const pxBoardWidth = material.width * pixelsPerMM;
+			if (lapPx > 0) {
+				lapBand = (
+					<Rect
+						x={(size.width - pxBoardWidth) / 2}
+						y={size.height * .2 - lapPx}
+						width={pxBoardWidth}
+						height={lapPx}
+						fill={canvasColors.matingBoard}
+					/>
+				);
+			}
+		}
 
 		const guides = guideLocations.map(
 			(x, i, xs) => <Guide key={i} x={x} {...commonProps} />,
@@ -160,6 +186,7 @@ export default function Visualizer() {
 			<Stage width={size.width} height={size.height}>
 				<Layer>
 					<Board {...commonProps} />
+					{lapBand}
 					{renderedHalfPins}
 					{renderedPins}
 					{guides}

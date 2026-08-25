@@ -1,8 +1,6 @@
 import {Shape} from 'react-konva';
 import Konva from 'konva';
 
-import type {CanvasColors} from './colors';
-
 type Props = {
 	viewWidth: number,
 	viewHeight: number,
@@ -11,7 +9,7 @@ type Props = {
 	pixelsPerMM: number,
 	cutterAngle: number,
 	width: number,
-	canvasColors: CanvasColors,
+	maskColor: string,
 };
 export default function Pin(props: Props) {
 	const {
@@ -22,7 +20,7 @@ export default function Pin(props: Props) {
 		pixelsPerMM,
 		cutterAngle,
 		width,
-		canvasColors,
+		maskColor,
 	} = props;
 
 	const pxBoardWidth = materialWidth * pixelsPerMM;
@@ -50,14 +48,14 @@ export default function Pin(props: Props) {
 				x={pxBoardStart}
 				y={viewHeight * .2}
 				sceneFunc={draw}
-				fill={canvasColors.background}
+				fill={maskColor}
 			/>
 			<Shape
 				scaleX={-1}
 				x={pxBoardStart + pxBoardWidth}
 				y={viewHeight * .2}
 				sceneFunc={draw}
-				fill={canvasColors.background}
+				fill={maskColor}
 			/>
 		</>
 	);

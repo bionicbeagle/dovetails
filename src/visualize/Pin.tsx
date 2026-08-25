@@ -19,6 +19,7 @@ type Props = {
 	onChange: (pin: Partial<Pin>) => void,
 	selected: boolean,
 	canvasColors: CanvasColors,
+	maskColor: string,
 };
 export default function PinComponent(props: Props) {
 	const {
@@ -36,6 +37,7 @@ export default function PinComponent(props: Props) {
 		onChange,
 		selected,
 		canvasColors,
+		maskColor,
 	} = props;
 
 	const pxBoardWidth = materialWidth * pixelsPerMM;
@@ -92,7 +94,7 @@ export default function PinComponent(props: Props) {
 			x={pxBoardStart + x * pixelsPerMM}
 			y={viewHeight * .2}
 			sceneFunc={draw}
-			fill={canvasColors.background}
+			fill={maskColor}
 			stroke={selected ? canvasColors.selectedPin : undefined}
 			draggable
 			dragBoundFunc={dragBound}

@@ -14,6 +14,8 @@ export type CanvasColors = {
 	dimension: string,
 	// Drawn above the board, over the canvas background
 	topDimension: string,
+	// Wood shade for the mating board, distinct from the board fill
+	matingBoard: string,
 };
 
 type EffectiveTheme = ThemePreference.Light | ThemePreference.Dark;
@@ -26,6 +28,7 @@ export const CANVAS_COLORS: {[theme in EffectiveTheme]: CanvasColors} = {
 		selectedPin: 'blue',
 		dimension: '#2a1c0e',
 		topDimension: '#333333',
+		matingBoard: '#8d6b45',
 	},
 	[ThemePreference.Dark]: {
 		background: '#2b2b28',
@@ -35,5 +38,6 @@ export const CANVAS_COLORS: {[theme in EffectiveTheme]: CanvasColors} = {
 		selectedPin: '#6ea8ff',
 		dimension: '#2a1c0e',
 		topDimension: '#c8c8c8',
+		matingBoard: '#8d6b45',
 	},
 };
