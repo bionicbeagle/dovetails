@@ -153,10 +153,25 @@ function pinBoardGeometries(spec: JointSpec): THREE.BufferGeometry[] {
 	return geometries;
 }
 
+export const TAIL_BOARD = 'tailBoard';
+export const PIN_BOARD = 'pinBoard';
+type BoardName = typeof TAIL_BOARD | typeof PIN_BOARD;
+
+const TOGGLE_KEYS: {[key: string]: BoardName | undefined} = {
+	'1': TAIL_BOARD,
+	'2': PIN_BOARD,
+};
+
 function buildJoint(spec: JointSpec, colors: CanvasColors): THREE.Group {
 	const group = new THREE.Group();
 
-	function addBoard(geometries: THREE.BufferGeometry[], color: string) {
+	function addBoard(
+		geometries: THREE.BufferGeometry[],
+		color: string,
+		name: string,
+	) {
+		const board = new THREE.Group();
+		board.name = name;
 		const material = new THREE.MeshLambertMaterial(
 			{color: new THREE.Color(color)},
 		);
@@ -164,41 +179,44 @@ function buildJoint(spec: JointSpec, colors: CanvasColors): THREE.Group {
 			{color: new THREE.Color(colors.dimension)},
 		);
 		for (const geometry of geometries) {
-			group.add(new THREE.Mesh(geometry, material));
-			group.add(
+			board.add(new THREE.Mesh(geometry, material));
+			board.add(
 				new THREE.LineSegments(
 					new THREE.EdgesGeometry(geometry, 25),
 					edgeMaterial,
 				),
 			);
 		}
+		group.add(board);
 	}
 
 	// The tail board keeps the editor's board color, the pin board
 	// uses the mating shade, matching the 2D mating board rendering
 	const tailGeometry = tailBoardGeometry(spec);
 	tailGeometry.translate(0, spec.pinThickness - spec.depth, 0);
-	addBoard([tailGeometry], colors.board);
-	addBoard(pinBoardGeometries(spec), colors.matingBoard);
+	addBoard([tailGeometry], colors.board, TAIL_BOARD);
+	addBoard(pinBoardGeometries(spec), colors.matingBoard, PIN_BOARD);
 
 	return group;
 }
 
 function disposeJoint(group: THREE.Group) {
-	for (const child of group.children) {
-		if (
-			child instanceof THREE.Mesh
-				|| child instanceof THREE.LineSegments
-		) {
-			child.geometry.dispose();
-			const materials = Array.isArray(child.material)
-				? child.material
-				: [child.material];
-			for (const material of materials) {
-				material.dispose();
+	group.traverse(
+		(child) => {
+			if (
+				child instanceof THREE.Mesh
+					|| child instanceof THREE.LineSegments
+			) {
+				child.geometry.dispose();
+				const materials = Array.isArray(child.material)
+					? child.material
+					: [child.material];
+				for (const material of materials) {
+					material.dispose();
+				}
 			}
-		}
-	}
+		},
+	);
 }
 
 type SceneState = {
@@ -222,6 +240,11 @@ export default function Preview3D() {
 
 	const mountRef = useRef<HTMLDivElement>(null);
 	const stateRef = useRef<SceneState | null>(null);
+	// Kept outside the scene state so it survives geometry rebuilds
+	// while editing the design
+	const visibilityRef = useRef<Record<BoardName, boolean>>(
+		{[TAIL_BOARD]: true, [PIN_BOARD]: true},
+	);
 
 	// One-time scene setup, kept alive across store updates so the
 	// camera position survives editing
@@ -263,12 +286,30 @@ export default function Preview3D() {
 			const observer = new ResizeObserver(resize);
 			observer.observe(mount);
 
+			const onKeyDown = (event: KeyboardEvent) => {
+				const name = TOGGLE_KEYS[event.key];
+				if (!name) {
+					return;
+				}
+				event.preventDefault();
+
+				const visible = !visibilityRef.current[name];
+				visibilityRef.current[name] = visible;
+				const board = scene.getObjectByName(name);
+				if (board) {
+					board.visible = visible;
+					render();
+				}
+			};
+			mount.addEventListener('keydown', onKeyDown);
+
 			mount.appendChild(renderer.domElement);
 			resize();
 			stateRef.current = {renderer, scene, camera, controls, render};
 
 			return () => {
 				observer.disconnect();
+				mount.removeEventListener('keydown', onKeyDown);
 				controls.dispose();
 				renderer.dispose();
 				mount.removeChild(renderer.domElement);
@@ -305,6 +346,13 @@ export default function Preview3D() {
 				canvasColors.background,
 			);
 			const joint = buildJoint(spec, canvasColors);
+			const boardNames: BoardName[] = [TAIL_BOARD, PIN_BOARD];
+			for (const name of boardNames) {
+				const board = joint.getObjectByName(name);
+				if (board) {
+					board.visible = visibilityRef.current[name];
+				}
+			}
 			state.scene.add(joint);
 			state.controls.target.set(
 				spec.width / 2,
@@ -325,5 +373,31 @@ export default function Preview3D() {
 	if (!preview3d) {
 		return null;
 	}
-	return <div ref={mountRef} className="Preview3D Block" />;
+	return (
+		<div
+			ref={mountRef}
+			className="Preview3D Block"
+			tabIndex={0}
+		>
+			<div className="Preview3DHints">
+				<span>
+					<kbd>1</kbd>
+					<span
+						className="Swatch"
+						style={{background: canvasColors.board}}
+					/>
+					tail board
+				</span>
+				<span>
+					<kbd>2</kbd>
+					<span
+						className="Swatch"
+						style={{background: canvasColors.matingBoard}}
+					/>
+					pin board
+				</span>
+				<span>drag to orbit &middot; scroll to zoom</span>
+			</div>
+		</div>
+	);
 }

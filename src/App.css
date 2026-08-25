@@ -137,9 +137,43 @@ div.Visualizer {
 }
 
 div.Preview3D {
+	position: relative;
 	margin-right: 12px;
 	height: 420px;
 	overflow: hidden;
+}
+
+.Preview3DHints {
+	position: absolute;
+	left: 8px;
+	bottom: 8px;
+	z-index: 1;
+	display: flex;
+	gap: 14px;
+	align-items: center;
+	font-size: 12px;
+	color: var(--fg);
+	opacity: 0.75;
+	pointer-events: none;
+}
+
+.Preview3DHints span {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.Preview3DHints kbd {
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	padding: 0px 4px;
+	font-size: 11px;
+}
+
+.Preview3DHints .Swatch {
+	width: 10px;
+	height: 10px;
+	border: 1px solid var(--border);
 }
 
 .Instructions {
