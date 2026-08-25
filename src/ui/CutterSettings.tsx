@@ -1,5 +1,5 @@
 import {useStore} from '../context/store';
-import {setCutter} from '../context/general';
+import {Joint, setCutter} from '../context/general';
 
 import {Form, FormHeader, FormSection, SelectRow, TextRow} from './Form';
 
@@ -85,7 +85,7 @@ function presetOptions(presets: Preset[]) {
 }
 
 export default function CutterSettings() {
-	const [{general: {kind, cutter}}, dispatch] = useStore();
+	const [{general: {kind, joint, cutter}}, dispatch] = useStore();
 
 	function onPresetChange(presets: Preset[], value: string) {
 		const preset = presets.find((p) => p.value === value);
@@ -94,8 +94,55 @@ export default function CutterSettings() {
 		}
 	}
 
+	const heightInput = (
+		<TextRow
+			id="height_input"
+			label="Cutter Height"
+			value={cutter.height}
+			onChange={(height) => dispatch(setCutter({height}))}
+		/>
+	);
+
+	// A box joint is cut entirely with the straight bit, so the
+	// dovetail bit section disappears and the straight bit drives
+	// both cutter settings
+	let dovetailSection = null;
+	if (joint !== Joint.Box) {
+		dovetailSection = (
+			<FormSection>
+				<SelectRow
+					id="bit_preset_input"
+					label="Dovetail Bit"
+					options={presetOptions(DOVETAIL_PRESETS)}
+					value={matchingPreset(cutter, DOVETAIL_PRESETS)}
+					onChange={
+						(value) => onPresetChange(DOVETAIL_PRESETS, value)
+					}
+				/>
+				<TextRow
+					id="dovetail_diameter_input"
+					label="Dovetail Diameter"
+					value={cutter.dovetailDiameter}
+					onChange={
+						(dovetailDiameter) => dispatch(
+							setCutter({dovetailDiameter}),
+						)
+					}
+				/>
+				{heightInput}
+				<TextRow
+					id="angle_input"
+					label="Cutter Angle (deg)"
+					value={cutter.angle}
+					onChange={(angle) => dispatch(setCutter({angle}))}
+					dimensionless
+				/>
+			</FormSection>
+		);
+	}
+
 	let straightSection = null;
-	if (kind === 'through') {
+	if (joint === Joint.Box || kind === 'through') {
 		straightSection = (
 			<FormSection>
 				<SelectRow
@@ -117,6 +164,7 @@ export default function CutterSettings() {
 						)
 					}
 				/>
+				{joint === Joint.Box && heightInput}
 			</FormSection>
 		);
 	}
@@ -125,40 +173,7 @@ export default function CutterSettings() {
 		<div className="Settings Block">
 			<Form>
 				<FormHeader>Cutter</FormHeader>
-				<FormSection>
-					<SelectRow
-						id="bit_preset_input"
-						label="Dovetail Bit"
-						options={presetOptions(DOVETAIL_PRESETS)}
-						value={matchingPreset(cutter, DOVETAIL_PRESETS)}
-						onChange={
-							(value) => onPresetChange(DOVETAIL_PRESETS, value)
-						}
-					/>
-					<TextRow
-						id="dovetail_diameter_input"
-						label="Dovetail Diameter"
-						value={cutter.dovetailDiameter}
-						onChange={
-							(dovetailDiameter) => dispatch(
-								setCutter({dovetailDiameter}),
-							)
-						}
-					/>
-					<TextRow
-						id="height_input"
-						label="Cutter Height"
-						value={cutter.height}
-						onChange={(height) => dispatch(setCutter({height}))}
-					/>
-					<TextRow
-						id="angle_input"
-						label="Cutter Angle (deg)"
-						value={cutter.angle}
-						onChange={(angle) => dispatch(setCutter({angle}))}
-						dimensionless
-					/>
-				</FormSection>
+				{dovetailSection}
 				{straightSection}
 			</Form>
 		</div>

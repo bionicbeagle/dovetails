@@ -6,13 +6,13 @@ import {useLimits} from '../util/limits';
 import {Form, FormHeader, FormSection, TextRow} from './Form';
 
 export default function MaterialSettings() {
-	const [{general: {kind, material}}, dispatch] = useStore();
+	const [{general: {kind, joint, material}}, dispatch] = useStore();
 	const {material: {maxThickness}} = useLimits();
 
 	let thicknessLabel = 'Material Thickness';
 	let lengthInput = null;
 	if (kind === 'half') {
-		thicknessLabel = 'Dovetail Depth';
+		thicknessLabel = joint === 'box' ? 'Joint Depth' : 'Dovetail Depth';
 		lengthInput = (
 			<TextRow
 				id="length_input"

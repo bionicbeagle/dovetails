@@ -11,19 +11,33 @@ import {Form, FormSection, SelectRow, TextRow} from './Form';
 const MethodSchema = z.nativeEnum(AutolayoutMethod);
 
 export default function AutoLayout() {
-	const [{general: {material, cutter}, halfPins}, dispatch] = useStore();
+	const [
+		{general: {joint, material, cutter}, halfPins},
+		dispatch,
+	] = useStore();
 	const {pins: {minWidth, minSpacing}} = useLimits();
 
-	const [method, setMethod] = useState<AutolayoutMethod>(
+	const [rawMethod, setMethod] = useState<AutolayoutMethod>(
 		AutolayoutMethod.EvenSpacing,
 	);
 	const [count, setCount] = useState<number>(0);
 	const [width, setWidth] = useState<number>(0);
 
+	// Equal Sizes only applies to box joints, so fall back if the
+	// joint type changed while it was selected
+	const method = (
+		joint !== 'box' && rawMethod === AutolayoutMethod.EqualSizes
+	)
+		? AutolayoutMethod.EvenSpacing
+		: rawMethod;
+
 	const methodOptions = [
 		{value: AutolayoutMethod.EvenSpacing, label: 'Even Spacing'},
 		{value: AutolayoutMethod.FixedPins, label: 'Fixed Pins'},
 		{value: AutolayoutMethod.FixedTails, label: 'Fixed Tails'},
+		...(joint === 'box'
+			? [{value: AutolayoutMethod.EqualSizes, label: 'Equal Sizes'}]
+			: []),
 	];
 
 	const tangent = Math.tan(2 * cutter.angle * Math.PI / 360);
@@ -45,6 +59,10 @@ export default function AutoLayout() {
 			case 'tails':
 				setCount(2);
 				setWidth(minTailWidth);
+				break;
+
+			case 'equal':
+				setCount(3);
 				break;
 
 			default:
@@ -93,6 +111,38 @@ export default function AutoLayout() {
 				</FormSection>
 			);
 			break;
+
+		case AutolayoutMethod.EqualSizes: {
+			// Every finger has to fit both the narrowest allowed pin
+			// and the narrowest allowed tail
+			const minFinger = Math.max(minWidth, minSpacing);
+			maxCount = Math.floor(availableSpace / minFinger);
+
+			if (count > 1 && count <= maxCount) {
+				onSubmit = () => {
+					dispatch(
+						autolayout(method, count, 0, material, cutter, halfPins)
+					);
+				};
+			}
+
+			settingsUI = (
+				<FormSection>
+					<TextRow
+						id="equal_count_input"
+						label="Finger Count"
+						value={count}
+						onChange={(count: number) => setCount(count)}
+						step={1}
+						min={2}
+						max={maxCount}
+						dimensionless
+						integer
+					/>
+				</FormSection>
+			);
+			break;
+		}
 
 		case 'pins':
 			maxCount = Math.floor(

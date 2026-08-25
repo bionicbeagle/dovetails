@@ -1,10 +1,18 @@
 import {z} from 'zod';
 
+import type {Store} from './store';
+
 export enum Kind {
 	Through = 'through',
 	Half = 'half',
 }
 export const KindSchema = z.nativeEnum(Kind);
+
+export enum Joint {
+	Dovetail = 'dovetail',
+	Box = 'box',
+}
+export const JointSchema = z.nativeEnum(Joint);
 
 export enum Unit {
 	MM = 'mm',
@@ -34,6 +42,7 @@ export type Material = z.infer<typeof MaterialSchema>;
 export const ContextGeneralSchema = z.object(
 	{
 		kind: KindSchema,
+		joint: JointSchema,
 		unit: UnitSchema,
 		cutter: CutterSchema,
 		material: MaterialSchema,
@@ -44,6 +53,7 @@ export type ContextGeneral = z.infer<typeof ContextGeneralSchema>;
 
 enum Action {
 	SetKind = 'setKind',
+	SetJointType = 'setJointType',
 	SetUnit = 'setUnit',
 	SetCutter = 'setCutter',
 	SetMaterial = 'setMaterial',
@@ -51,6 +61,7 @@ enum Action {
 
 export const initGeneral: ContextGeneral = {
 	kind: Kind.Through,
+	joint: Joint.Dovetail,
 	unit: Unit.MM,
 	cutter: {
 		dovetailDiameter: 12.7,
@@ -90,6 +101,25 @@ export function reduceGeneral(state: ContextGeneral, action: GeneralAction) {
 				kind: action.kind,
 				...materialComponent,
 			};
+		case Action.SetJointType: {
+			let next: ContextGeneral = state;
+			if (action.kind !== state.kind) {
+				next = reduceGeneral(state, setKind(action.kind));
+			}
+
+			// Leaving box mode with the angle still forced to zero
+			// wouldn't be a dovetail, so restore the default angle
+			let cutter = next.cutter;
+			if (
+				action.joint === Joint.Dovetail
+					&& state.joint === Joint.Box
+					&& cutter.angle === 0
+			) {
+				cutter = {...cutter, angle: initGeneral.cutter.angle};
+			}
+
+			return {...next, joint: action.joint, cutter};
+		}
 		case Action.SetUnit:
 			return {...state, unit: action.unit};
 		case Action.SetCutter:
@@ -107,6 +137,45 @@ export function reduceGeneral(state: ContextGeneral, action: GeneralAction) {
 type KindAction = {store: 'general', type: Action.SetKind, kind: Kind};
 export function setKind(kind: Kind): KindAction {
 	return {store: 'general', type: Action.SetKind, kind};
+}
+
+type JointTypeAction = {
+	store: 'general',
+	type: Action.SetJointType,
+	kind: Kind,
+	joint: Joint,
+};
+export function setJointType(kind: Kind, joint: Joint): JointTypeAction {
+	return {store: 'general', type: Action.SetJointType, kind, joint};
+}
+
+// A box joint is a dovetail joint with no flare, cut entirely with
+// the straight bit, so in box mode the dovetail cutter settings
+// mirror the straight bit
+export function validateJoint(store: Store): Store {
+	const {general} = store;
+	if (general.joint !== Joint.Box) {
+		return store;
+	}
+
+	const {cutter} = general;
+	if (
+		cutter.angle === 0
+			&& cutter.dovetailDiameter === cutter.straightDiameter
+	) {
+		return store;
+	}
+	return {
+		...store,
+		general: {
+			...general,
+			cutter: {
+				...cutter,
+				angle: 0,
+				dovetailDiameter: cutter.straightDiameter,
+			},
+		},
+	};
 }
 
 type UnitAction = {store: 'general', type: Action.SetUnit, unit: Unit};
@@ -134,6 +203,7 @@ export function setMaterial(material: Partial<Material>): MaterialAction {
 
 export type GeneralAction = (
 	KindAction |
+		JointTypeAction |
 		UnitAction |
 		CutterAction |
 		MaterialAction

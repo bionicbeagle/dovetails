@@ -18,6 +18,7 @@ export enum AutolayoutMethod {
 	EvenSpacing = 'even',
 	FixedPins = 'pins',
 	FixedTails = 'tails',
+	EqualSizes = 'equal',
 }
 
 const PinSchema = z.object(
@@ -59,7 +60,9 @@ export function validatePins(state: Store): Store {
 		const left = pin.x - pin.maxWidth / 2;
 		const right = pin.x + pin.maxWidth / 2;
 
-		if (left < maxLeft || right > maxRight) {
+		// The tolerance keeps pins laid out flush against a board
+		// edge from being dropped over floating point error
+		if (left < maxLeft - 0.0001 || right > maxRight + 0.0001) {
 			return false;
 		}
 		for (const otherPin of pins) {

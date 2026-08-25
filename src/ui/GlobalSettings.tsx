@@ -2,20 +2,36 @@ import {useStore} from '../context/store';
 import {
 	Unit,
 	Kind,
+	Joint,
 	UnitSchema,
 	KindSchema,
-	setKind,
+	JointSchema,
+	setJointType,
 	setUnit,
 } from '../context/general';
 
 import {Form, FormSection, SelectRow} from './Form';
 
 export default function GlobalSettings() {
-	const [{general: {kind, unit}}, dispatch] = useStore();
+	const [{general: {kind, joint, unit}}, dispatch] = useStore();
 
-	const kindOptions = [
-		{value: Kind.Through, label: 'Through'},
-		{value: Kind.Half, label: 'Half-Blind'},
+	const jointTypeOptions = [
+		{
+			value: `${Kind.Through}:${Joint.Dovetail}`,
+			label: 'Through Dovetail',
+		},
+		{
+			value: `${Kind.Half}:${Joint.Dovetail}`,
+			label: 'Half-Blind Dovetail',
+		},
+		{
+			value: `${Kind.Through}:${Joint.Box}`,
+			label: 'Through Box Joint',
+		},
+		{
+			value: `${Kind.Half}:${Joint.Box}`,
+			label: 'Half-Blind Box Joint',
+		},
 	];
 
 	const unitOptions = [
@@ -23,8 +39,12 @@ export default function GlobalSettings() {
 		{value: Unit.Inch, label: 'inch'},
 	];
 
-	function updateKind(kind: string) {
-		dispatch(setKind(KindSchema.parse(kind)));
+	function updateJointType(value: string) {
+		const [newKind, newJoint] = value.split(':');
+		dispatch(setJointType(
+			KindSchema.parse(newKind),
+			JointSchema.parse(newJoint),
+		));
 	}
 
 	function updateUnit(unit: string) {
@@ -37,10 +57,10 @@ export default function GlobalSettings() {
 				<FormSection>
 					<SelectRow
 						id="type_input"
-						label="Dovetail Type"
-						options={kindOptions}
-						value={kind}
-						onChange={updateKind}
+						label="Joint Type"
+						options={jointTypeOptions}
+						value={`${kind}:${joint}`}
+						onChange={updateJointType}
 					/>
 					<SelectRow
 						id="units_input"

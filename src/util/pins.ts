@@ -141,6 +141,24 @@ export function autolayoutPins(
 
 			return pins;
 
+		case AutolayoutMethod.EqualSizes: {
+			// count identical fingers, alternating tail/pin from the
+			// left: an odd count puts tails at both ends, an even
+			// count ends with a pin at the right edge.  Only offered
+			// for box joints, so no flare overlap to account for
+			const fingerWidth = availableSpace / count;
+			for (let i = 1; i < count; i += 2) {
+				pins.push(
+					{
+						selected: false,
+						x: left + fingerWidth * (i + 0.5),
+						maxWidth: fingerWidth,
+					},
+				);
+			}
+			return pins;
+		}
+
 		case AutolayoutMethod.FixedPins:
 			space = (availableSpace - count * width) / (count + 1);
 			for (let i = 0; i < count; i++) {

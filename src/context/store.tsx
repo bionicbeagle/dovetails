@@ -3,7 +3,12 @@ import merge from '../util/merge';
 import {useLocation} from 'react-router-dom';
 import {z} from 'zod';
 
-import {initGeneral, reduceGeneral, ContextGeneralSchema} from './general';
+import {
+	initGeneral,
+	reduceGeneral,
+	validateJoint,
+	ContextGeneralSchema,
+} from './general';
 import {initGuides, reduceGuides, ContextGuidesSchema} from './guides';
 import {
 	initHalfPins,
@@ -68,6 +73,7 @@ const Context = createContext<TContext>(
 	[initStore, () => {}, {canUndo: false, canRedo: false}],
 );
 const VALIDATIONS = [
+	validateJoint,
 	validatePins,
 	validateHalfPins,
 ];
