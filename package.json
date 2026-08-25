@@ -16,6 +16,7 @@
     "react-konva": "^18.2.1",
     "react-router-dom": "^5.2.0",
     "react-scripts": "5.0.1",
+    "three": "0.152.2",
     "typescript": "^4.8.2",
     "web-vitals": "^1.0.1",
     "zod": "^3.18.0"
@@ -46,6 +47,7 @@
     ]
   },
   "devDependencies": {
-    "@types/react-router-dom": "^5.3.3"
+    "@types/react-router-dom": "^5.3.3",
+    "@types/three": "0.152.1"
   }
 }

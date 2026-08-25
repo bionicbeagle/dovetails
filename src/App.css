@@ -136,6 +136,12 @@ div.Visualizer {
 	height: 500px;
 }
 
+div.Preview3D {
+	margin-right: 12px;
+	height: 420px;
+	overflow: hidden;
+}
+
 .Instructions {
 	text-align: left;
 	width: 50vw;

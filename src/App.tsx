@@ -11,6 +11,7 @@ import PinCreator from './ui/PinCreator';
 import PinEditor from './ui/PinEditor';
 import ThemeSelector from './ui/ThemeSelector';
 import Generate from './ui/Generate';
+import Preview3D from './visualize/Preview3D';
 import Visualizer from './visualize/Visualizer';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
 				</div>
 				<div className="BodyRight">
 					<Visualizer />
+					<Preview3D />
 					<div className="VisualizerTray">
 						<PinCreator />
 						<PinEditor />

@@ -7,7 +7,14 @@ export default function GuideSettings() {
 	const [
 		{
 			general: {cutter: {dovetailDiameter}},
-			guides: {enabled, spacing, from, dimensions, matingBoard},
+			guides: {
+				enabled,
+				spacing,
+				from,
+				dimensions,
+				matingBoard,
+				preview3d,
+			},
 		},
 		dispatch,
 	] = useStore();
@@ -78,6 +85,14 @@ export default function GuideSettings() {
 						checked={matingBoard}
 						onChange={
 							(matingBoard) => dispatch(update({matingBoard}))
+						}
+					/>
+					<CheckRow
+						id="preview3d_input"
+						label="3D Preview"
+						checked={preview3d}
+						onChange={
+							(preview3d) => dispatch(update({preview3d}))
 						}
 					/>
 				</FormSection>
