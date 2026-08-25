@@ -1,7 +1,14 @@
 import {useStore} from '../context/store';
 import {From, FromSchema, update} from '../context/guides';
 
-import {Form, FormSection, CheckRow, SelectRow, TextRow} from './Form';
+import {
+	Form,
+	FormHeader,
+	FormSection,
+	CheckRow,
+	SelectRow,
+	TextRow,
+} from './Form';
 
 export default function GuideSettings() {
 	const [
@@ -61,6 +68,7 @@ export default function GuideSettings() {
 	return (
 		<div className="Settings Block">
 			<Form>
+				<FormHeader>Visualization</FormHeader>
 				<FormSection>
 					<CheckRow
 						id="enabled_input"

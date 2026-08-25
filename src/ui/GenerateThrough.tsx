@@ -7,7 +7,7 @@ import {Anchor} from '../render/base';
 import {renderThroughTails} from '../render/tails';
 import {renderThroughPinsA, renderThroughPinsB} from '../render/pins';
 
-import {Form, FormSection, SelectRow} from './Form';
+import {Form, FormHeader, FormSection, SelectRow} from './Form';
 
 function dataURI(svg: string) {
 	return `data:image/svg+xml;base64,${btoa(svg)}`;
@@ -37,6 +37,7 @@ export default function GenerateThrough() {
 	return (
 		<div className="Block Settings">
 			<Form>
+				<FormHeader>Template</FormHeader>
 				<FormSection>
 					<SelectRow
 						id="anchor_input"
@@ -51,17 +52,31 @@ export default function GenerateThrough() {
 					<div className="ThreeButtonRow">
 						<a
 							href={dataURI(renderThroughTails(store, anchor))}
-							download="tails.svg">
+							download="tails.svg"
+							title={
+								'Template for the tails board, usable '
+									+ 'on both of its sides'
+							}>
 							Tails
 						</a>
 						<a
 							href={dataURI(renderThroughPinsA(store, anchor))}
-							download="pins_a.svg">
+							download="pins_a.svg"
+							title={
+								'Template for one side of the pins '
+									+ 'board; cut Pins (B) from the '
+									+ 'opposite side'
+							}>
 							Pins (A)
 						</a>
 						<a
 							href={dataURI(renderThroughPinsB(store, anchor))}
-							download="pins_b.svg">
+							download="pins_b.svg"
+							title={
+								'Template for the opposite side of the '
+									+ 'pins board, completing the cuts '
+									+ 'made with Pins (A)'
+							}>
 							Pins (B)
 						</a>
 					</div>

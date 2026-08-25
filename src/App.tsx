@@ -3,8 +3,10 @@ import {Link} from 'react-router-dom';
 import './App.css';
 
 import AutoLayout from './ui/AutoLayout';
+import CutterSettings from './ui/CutterSettings';
 import GuideSettings from './ui/GuideSettings';
 import GlobalSettings from './ui/GlobalSettings';
+import MaterialSettings from './ui/MaterialSettings';
 import HalfPinEditor from './ui/HalfPinEditor';
 import Mirror from './ui/Mirror';
 import PinCreator from './ui/PinCreator';
@@ -23,6 +25,8 @@ export default function App() {
 			<div className="Body">
 				<div className="BodyLeft">
 					<GlobalSettings />
+					<CutterSettings />
+					<MaterialSettings />
 					<GuideSettings />
 					<AutoLayout />
 					<Mirror />

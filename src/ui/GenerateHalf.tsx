@@ -5,7 +5,7 @@ import {useStore} from '../context/store';
 import {renderHalfTailsA, renderHalfTailsB} from '../render/tails';
 import {renderHalfPinsA, renderHalfPinsB} from '../render/pins';
 
-import {Form, FormSection, TextRow} from './Form';
+import {Form, FormHeader, FormSection, TextRow} from './Form';
 
 function dataURI(svg: string) {
 	return `data:image/svg+xml;base64,${btoa(svg)}`;
@@ -27,6 +27,7 @@ export default function GenerateHalf() {
 	return (
 		<div className="Block Settings">
 			<Form>
+				<FormHeader>Template</FormHeader>
 				<FormSection>
 					<TextRow
 						id="glue_input"
@@ -48,24 +49,42 @@ export default function GenerateHalf() {
 					<div className="TwoButtonRow">
 						<a
 							href={dataURI(renderHalfTailsA(store))}
-							download="tails_a.svg">
+							download="tails_a.svg"
+							title={
+								'Tails template for one corner of the '
+									+ 'assembly; pairs with Pins (A)'
+							}>
 							Tails (A)
 						</a>
 						<a
 							href={dataURI(renderHalfTailsB(store))}
-							download="tails_b.svg">
+							download="tails_b.svg"
+							title={
+								'Mirrored tails template for the '
+									+ 'opposite corner; pairs with '
+									+ 'Pins (B)'
+							}>
 							Tails (B)
 						</a>
 					</div>
 					<div className="TwoButtonRow">
 						<a
 							href={dataURI(pinsA)}
-							download="pins_a.svg">
+							download="pins_a.svg"
+							title={
+								'Pins template for one corner of the '
+									+ 'assembly; pairs with Tails (A)'
+							}>
 							Pins (A)
 						</a>
 						<a
 							href={dataURI(pinsB)}
-							download="pins_b.svg">
+							download="pins_b.svg"
+							title={
+								'Mirrored pins template for the '
+									+ 'opposite corner; pairs with '
+									+ 'Tails (B)'
+							}>
 							Pins (B)
 						</a>
 					</div>
