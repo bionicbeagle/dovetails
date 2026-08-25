@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader';
@@ -7,8 +7,16 @@ import {Kind} from '../context/general';
 import {useStore} from '../context/store';
 import {useEffectiveTheme} from '../theme';
 import {Anchor} from '../render/base';
-import {renderThroughTails, renderHalfTailsA} from '../render/tails';
-import {renderThroughPinsA, renderHalfPinsA} from '../render/pins';
+import {
+	renderThroughTails,
+	renderHalfTailsA,
+	renderHalfTailsB,
+} from '../render/tails';
+import {
+	renderThroughPinsA,
+	renderHalfPinsA,
+	renderHalfPinsB,
+} from '../render/pins';
 import {CANVAS_COLORS} from './colors';
 
 import type {Store} from '../context/store';
@@ -162,6 +170,10 @@ function pinBoardGeometries(spec: JointSpec): THREE.BufferGeometry[] {
 	return geometries;
 }
 
+// Which corner of the assembly is modeled: the two are mirror
+// images, cut with the matching A or B template pair
+type Corner = 'a' | 'b';
+
 export const TAIL_BOARD = 'tailBoard';
 export const PIN_BOARD = 'pinBoard';
 export const TAILS_TEMPLATE = 'tailsTemplate';
@@ -292,7 +304,11 @@ function buildTemplate(svg: string, matrix: THREE.Matrix4): THREE.Group {
 // cutting workflow: the tails template on the tail board's end
 // grain, the through pins template on the pin board's end grain, and
 // the half-blind pins template on the pin board's inner face
-function buildTemplates(store: Store, spec: JointSpec): THREE.Group {
+function buildTemplates(
+	store: Store,
+	spec: JointSpec,
+	corner: Corner,
+): THREE.Group {
 	const {general: {kind, cutter: {dovetailDiameter}}} = store;
 	// Both template SVGs pad the board area with this margin, so the
 	// SVG origin sits one buffer outside the board's corner
@@ -302,21 +318,44 @@ function buildTemplates(store: Store, spec: JointSpec): THREE.Group {
 
 	const group = new THREE.Group();
 
-	const tailsSVG = kind === Kind.Half
-		? renderHalfTailsA(store)
-		: renderThroughTails(store, Anchor.BottomLeft);
-	const tailsTemplate = buildTemplate(
-		tailsSVG,
-		new THREE.Matrix4().makeBasis(
-			new THREE.Vector3(1, 0, 0),
-			new THREE.Vector3(0, 0, -1),
-			new THREE.Vector3(0, -1, 0),
-		).setPosition(
-			-buffer,
-			spec.pinThickness - spec.depth - lift,
-			spec.tailThickness + buffer,
-		),
-	);
+	// The template layouts are mirrored relative to the modeled
+	// boards: with the handedness of each face fixed by the cutting
+	// workflow, the B pair's mirrored layout lands on the corner
+	// modeled from the un-mirrored pin list, and the A pair on its
+	// mirror image.  For half-blind this also puts the tails
+	// template's inset edge (the rounded bit-flare corners) on the
+	// face concealed inside the pin board's socket rather than the
+	// exposed one
+	let tailsTemplate = null;
+	if (kind === Kind.Half) {
+		tailsTemplate = buildTemplate(
+			corner === 'a'
+				? renderHalfTailsA(store)
+				: renderHalfTailsB(store),
+			new THREE.Matrix4().makeBasis(
+				new THREE.Vector3(-1, 0, 0),
+				new THREE.Vector3(0, 0, 1),
+				new THREE.Vector3(0, -1, 0),
+			).setPosition(
+				spec.width + buffer,
+				spec.pinThickness - spec.depth - lift,
+				-buffer,
+			),
+		);
+	} else {
+		tailsTemplate = buildTemplate(
+			renderThroughTails(store, Anchor.BottomLeft),
+			new THREE.Matrix4().makeBasis(
+				new THREE.Vector3(1, 0, 0),
+				new THREE.Vector3(0, 0, -1),
+				new THREE.Vector3(0, -1, 0),
+			).setPosition(
+				-buffer,
+				spec.pinThickness - spec.depth - lift,
+				spec.tailThickness + buffer,
+			),
+		);
+	}
 	tailsTemplate.name = TAILS_TEMPLATE;
 	group.add(tailsTemplate);
 
@@ -329,7 +368,9 @@ function buildTemplates(store: Store, spec: JointSpec): THREE.Group {
 		// board's interior toward its end, and both axes flip so the
 		// template reads unmirrored looking at the inner face
 		pinsTemplate = buildTemplate(
-			renderHalfPinsA(store, GLUE_GAP, EXTRA_DEPTH),
+			corner === 'a'
+				? renderHalfPinsA(store, GLUE_GAP, EXTRA_DEPTH)
+				: renderHalfPinsB(store, GLUE_GAP, EXTRA_DEPTH),
 			new THREE.Matrix4().makeBasis(
 				new THREE.Vector3(-1, 0, 0),
 				new THREE.Vector3(0, 0, -1),
@@ -392,6 +433,7 @@ export default function Preview3D() {
 		halfPins,
 	} = store;
 	const canvasColors = CANVAS_COLORS[useEffectiveTheme()];
+	const [corner, setCorner] = useState<Corner>('b');
 
 	const mountRef = useRef<HTMLDivElement>(null);
 	const stateRef = useRef<SceneState | null>(null);
@@ -442,6 +484,13 @@ export default function Preview3D() {
 			observer.observe(mount);
 
 			const onKeyDown = (event: KeyboardEvent) => {
+				const key = event.key.toLowerCase();
+				if (key === 'a' || key === 'b') {
+					event.preventDefault();
+					setCorner(key);
+					return;
+				}
+
 				const name = TOGGLE_KEYS[event.key];
 				if (!name) {
 					return;
@@ -483,6 +532,13 @@ export default function Preview3D() {
 			const boardThickness = kind === Kind.Half
 				? material.dovetailLength
 				: material.thickness;
+			// The un-mirrored pin list models the B corner; its
+			// mirror image is the A corner.  Through mode has no
+			// corner variants, so the toggle only applies half-blind
+			const mirrored = kind === Kind.Half && corner === 'a';
+			const effectivePins = mirrored
+				? pins.map((p) => ({...p, x: material.width - p.x}))
+				: pins;
 			const spec: JointSpec = {
 				width: material.width,
 				tailThickness: boardThickness,
@@ -490,7 +546,7 @@ export default function Preview3D() {
 				depth: material.thickness,
 				taper: material.thickness
 					* Math.tan(2 * cutter.angle * Math.PI / 360),
-				pins: [...pins].sort((a, b) => a.x - b.x),
+				pins: [...effectivePins].sort((a, b) => a.x - b.x),
 				halfPinWidth: halfPins.enabled ? halfPins.width : 0,
 			};
 
@@ -498,7 +554,7 @@ export default function Preview3D() {
 				canvasColors.background,
 			);
 			const joint = buildJoint(spec, canvasColors);
-			joint.add(buildTemplates(store, spec));
+			joint.add(buildTemplates(store, spec, corner));
 			applyVisibility(joint, visibilityRef.current);
 			state.scene.add(joint);
 			state.controls.target.set(
@@ -523,6 +579,7 @@ export default function Preview3D() {
 			halfPins,
 			canvasColors,
 			store,
+			corner,
 		],
 	);
 
@@ -556,6 +613,10 @@ export default function Preview3D() {
 					<kbd>3</kbd>
 					templates
 				</span>
+				{kind === Kind.Half && <span>
+					<kbd>A</kbd>/<kbd>B</kbd>
+					corner ({corner.toUpperCase()})
+				</span>}
 				<span>drag to orbit &middot; scroll to zoom</span>
 			</div>
 		</div>
