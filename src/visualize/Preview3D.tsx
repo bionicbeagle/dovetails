@@ -322,18 +322,22 @@ function buildTemplates(store: Store, spec: JointSpec): THREE.Group {
 
 	let pinsTemplate = null;
 	if (kind === Kind.Half) {
-		// The horizontal template's path origin sits one buffer plus
-		// one board thickness below the SVG's top edge
+		// The horizontal template reads top to bottom as: break line
+		// (the sawtooth), socket bottoms one board thickness later at
+		// the path origin, then the board end at the guide's bottom
+		// edge, where the anchor sits.  SVG y therefore runs from the
+		// board's interior toward its end, and both axes flip so the
+		// template reads unmirrored looking at the inner face
 		pinsTemplate = buildTemplate(
 			renderHalfPinsA(store, GLUE_GAP, EXTRA_DEPTH),
 			new THREE.Matrix4().makeBasis(
-				new THREE.Vector3(1, 0, 0),
-				new THREE.Vector3(0, 0, 1),
+				new THREE.Vector3(-1, 0, 0),
+				new THREE.Vector3(0, 0, -1),
 				new THREE.Vector3(0, 1, 0),
 			).setPosition(
-				-buffer,
+				spec.width + buffer,
 				spec.pinThickness + lift,
-				-(buffer + spec.pinThickness),
+				buffer + 2 * spec.pinThickness,
 			),
 		);
 	} else {
