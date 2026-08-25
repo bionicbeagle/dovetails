@@ -1,14 +1,23 @@
 import {useEffect, useRef} from 'react';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader';
 
 import {Kind} from '../context/general';
 import {useStore} from '../context/store';
 import {useEffectiveTheme} from '../theme';
+import {Anchor} from '../render/base';
+import {renderThroughTails, renderHalfTailsA} from '../render/tails';
+import {renderThroughPinsA, renderHalfPinsA} from '../render/pins';
 import {CANVAS_COLORS} from './colors';
 
+import type {Store} from '../context/store';
 import type {Pin} from '../context/pins';
 import type {CanvasColors} from './colors';
+
+// Matches the defaults in the half-blind generate module
+const GLUE_GAP = 0.02;
+const EXTRA_DEPTH = 0.1;
 
 // How far the boards extend beyond the joint, relative to the board
 // width, purely for looks
@@ -155,12 +164,40 @@ function pinBoardGeometries(spec: JointSpec): THREE.BufferGeometry[] {
 
 export const TAIL_BOARD = 'tailBoard';
 export const PIN_BOARD = 'pinBoard';
-type BoardName = typeof TAIL_BOARD | typeof PIN_BOARD;
+export const TAILS_TEMPLATE = 'tailsTemplate';
+export const PINS_TEMPLATE = 'pinsTemplate';
+export const TEMPLATES = 'templates';
+type ToggleName = (
+	typeof TAIL_BOARD |
+		typeof PIN_BOARD |
+		typeof TEMPLATES
+);
+type Visibility = Record<ToggleName, boolean>;
 
-const TOGGLE_KEYS: {[key: string]: BoardName | undefined} = {
+const TOGGLE_KEYS: {[key: string]: ToggleName | undefined} = {
 	'1': TAIL_BOARD,
 	'2': PIN_BOARD,
+	'3': TEMPLATES,
 };
+
+// Each template only shows while both the templates toggle and its
+// own board are visible
+function applyVisibility(root: THREE.Object3D, visibility: Visibility) {
+	const resolved = {
+		[TAIL_BOARD]: visibility[TAIL_BOARD],
+		[PIN_BOARD]: visibility[PIN_BOARD],
+		[TAILS_TEMPLATE]:
+			visibility[TEMPLATES] && visibility[TAIL_BOARD],
+		[PINS_TEMPLATE]:
+			visibility[TEMPLATES] && visibility[PIN_BOARD],
+	};
+	for (const [name, visible] of Object.entries(resolved)) {
+		const object = root.getObjectByName(name);
+		if (object) {
+			object.visible = visible;
+		}
+	}
+}
 
 function buildJoint(spec: JointSpec, colors: CanvasColors): THREE.Group {
 	const group = new THREE.Group();
@@ -200,12 +237,127 @@ function buildJoint(spec: JointSpec, colors: CanvasColors): THREE.Group {
 	return group;
 }
 
+// Renders one generated SVG template into a group, fills and
+// outlines colored as in the exported file, and places it on a face
+// of the model via the given transform, which maps SVG coordinates
+// (x right, y down, origin at the template's top-left corner) into
+// the scene
+function buildTemplate(svg: string, matrix: THREE.Matrix4): THREE.Group {
+	const group = new THREE.Group();
+	const {paths} = new SVGLoader().parse(svg);
+
+	for (const path of paths) {
+		const style = path.userData?.style || {};
+		if (style.fill && style.fill !== 'none') {
+			const material = new THREE.MeshBasicMaterial(
+				{
+					color: new THREE.Color(style.fill),
+					transparent: true,
+					opacity: 0.45,
+					side: THREE.DoubleSide,
+					depthWrite: false,
+				},
+			);
+			for (const shape of SVGLoader.createShapes(path)) {
+				const mesh = new THREE.Mesh(
+					new THREE.ShapeGeometry(shape),
+					material,
+				);
+				mesh.renderOrder = 1;
+				group.add(mesh);
+			}
+		}
+		if (style.stroke && style.stroke !== 'none') {
+			const material = new THREE.LineBasicMaterial(
+				{color: new THREE.Color(style.stroke)},
+			);
+			for (const subPath of path.subPaths) {
+				const line = new THREE.Line(
+					new THREE.BufferGeometry().setFromPoints(
+						subPath.getPoints(),
+					),
+					material,
+				);
+				line.renderOrder = 2;
+				group.add(line);
+			}
+		}
+	}
+
+	group.applyMatrix4(matrix);
+	return group;
+}
+
+// The templates are placed where they'd be applied in the actual
+// cutting workflow: the tails template on the tail board's end
+// grain, the through pins template on the pin board's end grain, and
+// the half-blind pins template on the pin board's inner face
+function buildTemplates(store: Store, spec: JointSpec): THREE.Group {
+	const {general: {kind, cutter: {dovetailDiameter}}} = store;
+	// Both template SVGs pad the board area with this margin, so the
+	// SVG origin sits one buffer outside the board's corner
+	const buffer = 1.75 * dovetailDiameter;
+	// Lifts each template slightly off its face to avoid z-fighting
+	const lift = 0.3;
+
+	const group = new THREE.Group();
+
+	const tailsSVG = kind === Kind.Half
+		? renderHalfTailsA(store)
+		: renderThroughTails(store, Anchor.BottomLeft);
+	const tailsTemplate = buildTemplate(
+		tailsSVG,
+		new THREE.Matrix4().makeBasis(
+			new THREE.Vector3(1, 0, 0),
+			new THREE.Vector3(0, 0, -1),
+			new THREE.Vector3(0, -1, 0),
+		).setPosition(
+			-buffer,
+			spec.pinThickness - spec.depth - lift,
+			spec.tailThickness + buffer,
+		),
+	);
+	tailsTemplate.name = TAILS_TEMPLATE;
+	group.add(tailsTemplate);
+
+	let pinsTemplate = null;
+	if (kind === Kind.Half) {
+		// The horizontal template's path origin sits one buffer plus
+		// one board thickness below the SVG's top edge
+		pinsTemplate = buildTemplate(
+			renderHalfPinsA(store, GLUE_GAP, EXTRA_DEPTH),
+			new THREE.Matrix4().makeBasis(
+				new THREE.Vector3(1, 0, 0),
+				new THREE.Vector3(0, 0, 1),
+				new THREE.Vector3(0, 1, 0),
+			).setPosition(
+				-buffer,
+				spec.pinThickness + lift,
+				-(buffer + spec.pinThickness),
+			),
+		);
+	} else {
+		pinsTemplate = buildTemplate(
+			renderThroughPinsA(store, Anchor.BottomLeft),
+			new THREE.Matrix4().makeBasis(
+				new THREE.Vector3(1, 0, 0),
+				new THREE.Vector3(0, 1, 0),
+				new THREE.Vector3(0, 0, -1),
+			).setPosition(-buffer, -buffer, -lift),
+		);
+	}
+	pinsTemplate.name = PINS_TEMPLATE;
+	group.add(pinsTemplate);
+
+	return group;
+}
+
 function disposeJoint(group: THREE.Group) {
 	group.traverse(
 		(child) => {
 			if (
 				child instanceof THREE.Mesh
-					|| child instanceof THREE.LineSegments
+					|| child instanceof THREE.Line
 			) {
 				child.geometry.dispose();
 				const materials = Array.isArray(child.material)
@@ -228,22 +380,21 @@ type SceneState = {
 };
 
 export default function Preview3D() {
-	const [
-		{
-			general: {kind, material, cutter},
-			guides: {preview3d},
-			pins,
-			halfPins,
-		},
-	] = useStore();
+	const [store] = useStore();
+	const {
+		general: {kind, material, cutter},
+		guides: {preview3d},
+		pins,
+		halfPins,
+	} = store;
 	const canvasColors = CANVAS_COLORS[useEffectiveTheme()];
 
 	const mountRef = useRef<HTMLDivElement>(null);
 	const stateRef = useRef<SceneState | null>(null);
 	// Kept outside the scene state so it survives geometry rebuilds
 	// while editing the design
-	const visibilityRef = useRef<Record<BoardName, boolean>>(
-		{[TAIL_BOARD]: true, [PIN_BOARD]: true},
+	const visibilityRef = useRef<Visibility>(
+		{[TAIL_BOARD]: true, [PIN_BOARD]: true, [TEMPLATES]: true},
 	);
 
 	// One-time scene setup, kept alive across store updates so the
@@ -293,13 +444,10 @@ export default function Preview3D() {
 				}
 				event.preventDefault();
 
-				const visible = !visibilityRef.current[name];
-				visibilityRef.current[name] = visible;
-				const board = scene.getObjectByName(name);
-				if (board) {
-					board.visible = visible;
-					render();
-				}
+				visibilityRef.current[name] =
+					!visibilityRef.current[name];
+				applyVisibility(scene, visibilityRef.current);
+				render();
 			};
 			mount.addEventListener('keydown', onKeyDown);
 
@@ -346,13 +494,8 @@ export default function Preview3D() {
 				canvasColors.background,
 			);
 			const joint = buildJoint(spec, canvasColors);
-			const boardNames: BoardName[] = [TAIL_BOARD, PIN_BOARD];
-			for (const name of boardNames) {
-				const board = joint.getObjectByName(name);
-				if (board) {
-					board.visible = visibilityRef.current[name];
-				}
-			}
+			joint.add(buildTemplates(store, spec));
+			applyVisibility(joint, visibilityRef.current);
 			state.scene.add(joint);
 			state.controls.target.set(
 				spec.width / 2,
@@ -367,7 +510,16 @@ export default function Preview3D() {
 				disposeJoint(joint);
 			};
 		},
-		[preview3d, kind, material, cutter, pins, halfPins, canvasColors],
+		[
+			preview3d,
+			kind,
+			material,
+			cutter,
+			pins,
+			halfPins,
+			canvasColors,
+			store,
+		],
 	);
 
 	if (!preview3d) {
@@ -395,6 +547,10 @@ export default function Preview3D() {
 						style={{background: canvasColors.matingBoard}}
 					/>
 					pin board
+				</span>
+				<span>
+					<kbd>3</kbd>
+					templates
 				</span>
 				<span>drag to orbit &middot; scroll to zoom</span>
 			</div>
