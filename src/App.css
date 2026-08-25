@@ -114,10 +114,10 @@
 
 .Settings a {
 	display: block;
-	border: 2px solid black;
-	background: gray;
+	border: 2px solid var(--border-strong);
+	background: var(--button-bg);
 	padding: 2px;
-	color: white;
+	color: var(--button-fg);
 	text-decoration: none;
 }
 
@@ -127,7 +127,7 @@
 
 .Block {
 	block-size: fit-content;
-	border: 2px solid gray;
+	border: 2px solid var(--border);
 	margin: 12px 0px 0px 12px;
 }
 
@@ -170,7 +170,7 @@ div.Visualizer {
 .Instructions .TOC {
 	margin-left: auto;
 	margin-right: auto;
-	border: 2px solid gray;
+	border: 2px solid var(--border);
 	width: fit-content;
 	padding: 24px;
 }

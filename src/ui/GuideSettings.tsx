@@ -7,7 +7,7 @@ export default function GuideSettings() {
 	const [
 		{
 			general: {cutter: {dovetailDiameter}},
-			guides: {enabled, spacing, from},
+			guides: {enabled, spacing, from, dimensions},
 		},
 		dispatch,
 	] = useStore();
@@ -63,6 +63,16 @@ export default function GuideSettings() {
 					/>
 				</FormSection>
 				{extraOptions}
+				<FormSection>
+					<CheckRow
+						id="dimensions_input"
+						label="Show Dimensions"
+						checked={dimensions}
+						onChange={
+							(dimensions) => dispatch(update({dimensions}))
+						}
+					/>
+				</FormSection>
 			</Form>
 		</div>
 	);

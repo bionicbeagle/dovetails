@@ -1,13 +1,18 @@
 import {useRef, useState, useLayoutEffect} from 'react';
 import {Stage, Layer} from 'react-konva';
 
+import {Kind} from '../context/general';
 import {useStore} from '../context/store';
 import {useGuideLocations} from '../context/guides';
 import {update} from '../context/pins';
 
 import {useLimits} from '../util/limits';
+import {useEffectiveTheme} from '../theme';
+
+import {CANVAS_COLORS} from './colors';
 
 import Board from './Board';
+import Dimensions from './Dimensions';
 import Guide from './Guide';
 import HalfPins from './HalfPins';
 import Pin from './Pin';
@@ -50,7 +55,8 @@ export default function Visualizer() {
 	const size = useSize(target);
 	const [
 		{
-			general: {material, cutter},
+			general: {material, cutter, unit, kind},
+			guides: {dimensions},
 			pins,
 			halfPins,
 		},
@@ -58,6 +64,7 @@ export default function Visualizer() {
 	] = useStore();
 	const {pins: {minSpacing}} = useLimits();
 	const guideLocations = useGuideLocations();
+	const canvasColors = CANVAS_COLORS[useEffectiveTheme()];
 
 	let stage = null;
 	if (size) {
@@ -66,10 +73,22 @@ export default function Visualizer() {
 		// board width is 80% of the width, and we go with whichever
 		// gives us the fewest pixels per millimeter to ensure the board
 		// and pins fit nicely in the view
-		const pixelsPerMM = Math.min(
+		let pixelsPerMM = Math.min(
 			0.6 * size.height / material.thickness,
 			0.8 * size.width / material.width,
 		);
+		// In half-blind mode the dimension overlay draws the mating
+		// board's outer face above the board end, offset by the lap
+		// (material thickness minus dovetail depth), which has to fit
+		// into the empty band above the board along with the top
+		// dimension row
+		const lap = material.dovetailLength - material.thickness;
+		if (kind === Kind.Half && lap > 0) {
+			pixelsPerMM = Math.min(
+				pixelsPerMM,
+				Math.max(0.2 * size.height - 52, 24) / lap,
+			);
+		}
 
 		const halfPinWidth = halfPins.enabled ? halfPins.width : 0;
 		const commonProps = {
@@ -82,6 +101,7 @@ export default function Visualizer() {
 			materialThickness: material.thickness,
 			cutterAngle: cutter.angle,
 			pixelsPerMM,
+			canvasColors,
 		};
 
 		const guides = guideLocations.map(
@@ -144,13 +164,25 @@ export default function Visualizer() {
 					{renderedPins}
 					{guides}
 					<ShoulderIndicator {...commonProps} />
+					{dimensions && <Dimensions
+						unit={unit}
+						pins={pins}
+						halfPinWidth={halfPinWidth}
+						kind={kind}
+						dovetailLength={material.dovetailLength}
+						{...commonProps}
+					/>}
 				</Layer>
 			</Stage>
 		);
 	}
 
 	return (
-		<div ref={target} className="Visualizer Block">
+		<div
+			ref={target}
+			className="Visualizer Block"
+			style={{background: canvasColors.background}}
+		>
 			{stage}
 		</div>
 	);

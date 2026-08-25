@@ -2,6 +2,7 @@ import {Shape} from 'react-konva';
 import Konva from 'konva';
 
 import type {Pin} from '../context/pins';
+import type {CanvasColors} from './colors';
 
 type Props = {
 	viewWidth: number,
@@ -17,6 +18,7 @@ type Props = {
 	guides: number[],
 	onChange: (pin: Partial<Pin>) => void,
 	selected: boolean,
+	canvasColors: CanvasColors,
 };
 export default function PinComponent(props: Props) {
 	const {
@@ -33,6 +35,7 @@ export default function PinComponent(props: Props) {
 		guides,
 		onChange,
 		selected,
+		canvasColors,
 	} = props;
 
 	const pxBoardWidth = materialWidth * pixelsPerMM;
@@ -89,8 +92,8 @@ export default function PinComponent(props: Props) {
 			x={pxBoardStart + x * pixelsPerMM}
 			y={viewHeight * .2}
 			sceneFunc={draw}
-			fill="white"
-			stroke={selected ? 'blue' : undefined}
+			fill={canvasColors.background}
+			stroke={selected ? canvasColors.selectedPin : undefined}
 			draggable
 			dragBoundFunc={dragBound}
 			onDragStart={() => onChange({selected: true})}
