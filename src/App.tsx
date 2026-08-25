@@ -46,9 +46,16 @@ export default function App() {
 			</div>
 			<div className="Footer">
 				<ul>
-					<li>&copy; 2021, Robert Bieber</li>
 					<li>
-						<a href="https://www.github.com/bieber/dovetails/">
+						&copy; 2021, Robert Bieber
+						{' & '}
+						&copy; 2026,{' '}
+						<a href="https://github.com/bionicbeagle">
+							@bionicbeagle
+						</a>
+					</li>
+					<li>
+						<a href="https://www.github.com/bionicbeagle/dovetails/">
 							Source code on Github
 						</a>
 					</li>
