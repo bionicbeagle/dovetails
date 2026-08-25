@@ -1,8 +1,8 @@
-import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {z} from 'zod';
 
 import {useStore} from '../context/store';
+import {update} from '../context/template';
 import {Anchor} from '../render/base';
 import {renderThroughTails} from '../render/tails';
 import {renderThroughPinsA, renderThroughPinsB} from '../render/pins';
@@ -14,12 +14,12 @@ function dataURI(svg: string) {
 }
 
 export default function GenerateThrough() {
-	const [store] = useStore();
-	const [anchor, setAnchor] = useState(Anchor.BottomLeft);
+	const [store, dispatch] = useStore();
+	const {template: {anchor}} = store;
 
 	const AnchorSchema = z.nativeEnum(Anchor);
-	function checkAnchor(anchor: String) {
-		setAnchor(AnchorSchema.parse(anchor));
+	function checkAnchor(anchor: string) {
+		dispatch(update({anchor: AnchorSchema.parse(anchor)}));
 	}
 
 	const shareLink = {

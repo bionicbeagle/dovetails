@@ -12,11 +12,17 @@ import {
 	ContextHalfPinsSchema,
 } from './halfPins';
 import {initPins, reducePins, validatePins, ContextPinsSchema} from './pins';
+import {
+	initTemplate,
+	reduceTemplate,
+	ContextTemplateSchema,
+} from './template';
 
 import type {GeneralAction} from './general';
 import type {GuidesAction} from './guides';
 import type {HalfPinsAction} from './halfPins';
 import type {PinsAction} from './pins';
+import type {TemplateAction} from './template';
 
 const StoreSchema = z.object(
 	{
@@ -24,6 +30,7 @@ const StoreSchema = z.object(
 		guides: ContextGuidesSchema,
 		halfPins: ContextHalfPinsSchema,
 		pins: ContextPinsSchema,
+		template: ContextTemplateSchema,
 	},
 );
 export type Store = z.infer<typeof StoreSchema>;
@@ -33,9 +40,16 @@ const initStore = {
 	guides: initGuides,
 	halfPins: initHalfPins,
 	pins: initPins,
+	template: initTemplate,
 };
 
-type Action = GeneralAction | GuidesAction | HalfPinsAction | PinsAction;
+type Action = (
+	GeneralAction |
+		GuidesAction |
+		HalfPinsAction |
+		PinsAction |
+		TemplateAction
+);
 
 type HistoryAction = {store: 'history', type: 'undo' | 'redo'};
 export function undo(): HistoryAction {
@@ -90,6 +104,12 @@ function reducePresent(state: Store, action: Action): Store {
 				halfPins: reduceHalfPins(state.halfPins, action),
 			};
 			break;
+		case 'template':
+			newState = {
+				...state,
+				template: reduceTemplate(state.template, action),
+			};
+			break;
 		default:
 			return state;
 	}
@@ -118,6 +138,8 @@ function isEphemeral(action: Action): boolean {
 			return 'delta' in action && Object.keys(action.delta).every(
 				(key) => key === 'selected',
 			);
+		case 'template':
+			return true;
 		default:
 			return false;
 	}
@@ -227,6 +249,7 @@ export function StoreProvider({children}:  Props) {
 		guides: initGuides,
 		halfPins: initHalfPins,
 		pins: initPins,
+		template: initTemplate,
 	};
 	if (sharedState) {
 		initialState = merge(

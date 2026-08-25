@@ -1,7 +1,7 @@
-import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
 import {useStore} from '../context/store';
+import {update} from '../context/template';
 import {renderHalfTailsA, renderHalfTailsB} from '../render/tails';
 import {renderHalfPinsA, renderHalfPinsB} from '../render/pins';
 
@@ -12,9 +12,8 @@ function dataURI(svg: string) {
 }
 
 export default function GenerateHalf() {
-	const [store] = useStore();
-	const [glueGap, setGlueGap] = useState(0.02);
-	const [extraDepth, setExtraDepth] = useState(0.1);
+	const [store, dispatch] = useStore();
+	const {template: {glueGap, extraDepth}} = store;
 
 	const shareLink = {
 		path: '/',
@@ -34,14 +33,18 @@ export default function GenerateHalf() {
 						label="Glue Gap"
 						min={0}
 						value={glueGap}
-						onChange={setGlueGap}
+						onChange={
+							(glueGap) => dispatch(update({glueGap}))
+						}
 					/>
 					<TextRow
 						id="extra_depth_input"
 						label="Extra Depth"
 						min={0}
 						value={extraDepth}
-						onChange={setExtraDepth}
+						onChange={
+							(extraDepth) => dispatch(update({extraDepth}))
+						}
 					/>
 				</FormSection>
 				<span>Download</span>

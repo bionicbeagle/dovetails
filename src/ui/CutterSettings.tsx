@@ -9,9 +9,10 @@ const CUSTOM = 'custom';
 type Preset = {
 	value: string,
 	label: string,
-	cutter: Pick<Cutter, 'dovetailDiameter' | 'height' | 'angle'>,
+	cutter: Partial<Cutter>,
 };
-const PRESETS: Preset[] = [
+
+const DOVETAIL_PRESETS: Preset[] = [
 	{
 		value: 'default',
 		label: 'Default bit',
@@ -39,48 +40,84 @@ const PRESETS: Preset[] = [
 	},
 ];
 
-function matchingPreset(cutter: Cutter): string {
-	const matches = (a: number, b: number) => Math.abs(a - b) < 0.001;
-	for (const preset of PRESETS) {
-		if (
-			matches(cutter.dovetailDiameter, preset.cutter.dovetailDiameter)
-				&& matches(cutter.height, preset.cutter.height)
-				&& matches(cutter.angle, preset.cutter.angle)
-		) {
+const STRAIGHT_PRESETS: Preset[] = [
+	{
+		value: 'default',
+		label: 'Default bit (1/4")',
+		cutter: {straightDiameter: 6.35},
+	},
+	{
+		value: 'shaper8th',
+		label: 'Shaper 1/8"',
+		cutter: {straightDiameter: 3.175},
+	},
+	{
+		value: 'shaper6mm',
+		label: 'Shaper 6 mm',
+		cutter: {straightDiameter: 6},
+	},
+	{
+		value: 'shaper8mm',
+		label: 'Shaper 8 mm',
+		cutter: {straightDiameter: 8},
+	},
+];
+
+function matchingPreset(cutter: Cutter, presets: Preset[]): string {
+	for (const preset of presets) {
+		const matches = Object.entries(preset.cutter).every(
+			([key, value]) => Math.abs(
+				cutter[key as keyof Cutter] - value,
+			) < 0.001,
+		);
+		if (matches) {
 			return preset.value;
 		}
 	}
 	return CUSTOM;
 }
 
+function presetOptions(presets: Preset[]) {
+	return [
+		...presets.map(({value, label}) => ({value, label})),
+		{value: CUSTOM, label: 'Custom'},
+	];
+}
+
 export default function CutterSettings() {
 	const [{general: {kind, cutter}}, dispatch] = useStore();
 
-	function onPresetChange(value: string) {
-		const preset = PRESETS.find((p) => p.value === value);
+	function onPresetChange(presets: Preset[], value: string) {
+		const preset = presets.find((p) => p.value === value);
 		if (preset) {
 			dispatch(setCutter(preset.cutter));
 		}
 	}
 
-	const presetOptions = [
-		...PRESETS.map(({value, label}) => ({value, label})),
-		{value: CUSTOM, label: 'Custom'},
-	];
-
-	let straightInput = null;
+	let straightSection = null;
 	if (kind === 'through') {
-		straightInput = (
-			<TextRow
-				id="straight_diameter_input"
-				label="Straight Diameter"
-				value={cutter.straightDiameter}
-				onChange={
-					(straightDiameter) => dispatch(
-						setCutter({straightDiameter}),
-					)
-				}
-			/>
+		straightSection = (
+			<FormSection>
+				<SelectRow
+					id="straight_preset_input"
+					label="Straight Bit"
+					options={presetOptions(STRAIGHT_PRESETS)}
+					value={matchingPreset(cutter, STRAIGHT_PRESETS)}
+					onChange={
+						(value) => onPresetChange(STRAIGHT_PRESETS, value)
+					}
+				/>
+				<TextRow
+					id="straight_diameter_input"
+					label="Straight Diameter"
+					value={cutter.straightDiameter}
+					onChange={
+						(straightDiameter) => dispatch(
+							setCutter({straightDiameter}),
+						)
+					}
+				/>
+			</FormSection>
 		);
 	}
 
@@ -91,10 +128,12 @@ export default function CutterSettings() {
 				<FormSection>
 					<SelectRow
 						id="bit_preset_input"
-						label="Bit Preset"
-						options={presetOptions}
-						value={matchingPreset(cutter)}
-						onChange={onPresetChange}
+						label="Dovetail Bit"
+						options={presetOptions(DOVETAIL_PRESETS)}
+						value={matchingPreset(cutter, DOVETAIL_PRESETS)}
+						onChange={
+							(value) => onPresetChange(DOVETAIL_PRESETS, value)
+						}
 					/>
 					<TextRow
 						id="dovetail_diameter_input"
@@ -106,7 +145,6 @@ export default function CutterSettings() {
 							)
 						}
 					/>
-					{straightInput}
 					<TextRow
 						id="height_input"
 						label="Cutter Height"
@@ -121,6 +159,7 @@ export default function CutterSettings() {
 						dimensionless
 					/>
 				</FormSection>
+				{straightSection}
 			</Form>
 		</div>
 	);

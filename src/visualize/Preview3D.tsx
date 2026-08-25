@@ -6,7 +6,6 @@ import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader';
 import {Kind} from '../context/general';
 import {useStore} from '../context/store';
 import {useEffectiveTheme} from '../theme';
-import {Anchor} from '../render/base';
 import {
 	renderThroughTails,
 	renderHalfTailsA,
@@ -22,10 +21,6 @@ import {CANVAS_COLORS} from './colors';
 import type {Store} from '../context/store';
 import type {Pin} from '../context/pins';
 import type {CanvasColors} from './colors';
-
-// Matches the defaults in the half-blind generate module
-const GLUE_GAP = 0.02;
-const EXTRA_DEPTH = 0.1;
 
 // How far the boards extend beyond the joint, relative to the board
 // width, purely for looks
@@ -309,7 +304,10 @@ function buildTemplates(
 	spec: JointSpec,
 	corner: Corner,
 ): THREE.Group {
-	const {general: {kind, cutter: {dovetailDiameter}}} = store;
+	const {
+		general: {kind, cutter: {dovetailDiameter}},
+		template: {anchor, glueGap, extraDepth},
+	} = store;
 	// Both template SVGs pad the board area with this margin, so the
 	// SVG origin sits one buffer outside the board's corner
 	const buffer = 1.75 * dovetailDiameter;
@@ -344,7 +342,7 @@ function buildTemplates(
 		);
 	} else {
 		tailsTemplate = buildTemplate(
-			renderThroughTails(store, Anchor.BottomLeft),
+			renderThroughTails(store, anchor),
 			new THREE.Matrix4().makeBasis(
 				new THREE.Vector3(1, 0, 0),
 				new THREE.Vector3(0, 0, -1),
@@ -369,8 +367,8 @@ function buildTemplates(
 		// template reads unmirrored looking at the inner face
 		pinsTemplate = buildTemplate(
 			corner === 'a'
-				? renderHalfPinsA(store, GLUE_GAP, EXTRA_DEPTH)
-				: renderHalfPinsB(store, GLUE_GAP, EXTRA_DEPTH),
+				? renderHalfPinsA(store, glueGap, extraDepth)
+				: renderHalfPinsB(store, glueGap, extraDepth),
 			new THREE.Matrix4().makeBasis(
 				new THREE.Vector3(-1, 0, 0),
 				new THREE.Vector3(0, 0, -1),
@@ -383,7 +381,7 @@ function buildTemplates(
 		);
 	} else {
 		pinsTemplate = buildTemplate(
-			renderThroughPinsA(store, Anchor.BottomLeft),
+			renderThroughPinsA(store, anchor),
 			new THREE.Matrix4().makeBasis(
 				new THREE.Vector3(1, 0, 0),
 				new THREE.Vector3(0, 1, 0),
