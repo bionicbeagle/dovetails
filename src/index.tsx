@@ -13,7 +13,7 @@ import Instructions from './Instructions';
 ReactDOM.render(
 	<React.StrictMode>
 		<ThemeProvider>
-			<Router>
+			<Router basename={process.env.PUBLIC_URL}>
 				<Switch>
 					<Route path="/instructions">
 						<Instructions />
