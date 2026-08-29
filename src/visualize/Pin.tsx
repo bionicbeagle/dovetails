@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {Shape} from 'react-konva';
 import Konva from 'konva';
 
@@ -40,9 +41,18 @@ export default function PinComponent(props: Props) {
 		maskColor,
 	} = props;
 
+	const [hovered, setHovered] = useState(false);
+
 	const pxBoardWidth = materialWidth * pixelsPerMM;
 	const pxBoardStart = (viewWidth - pxBoardWidth) / 2;
 	const pxMaxWidth = maxWidth * pixelsPerMM;
+
+	function setCursor(target: Konva.Node, cursor: string) {
+		const stage = target.getStage();
+		if (stage) {
+			stage.container().style.cursor = cursor;
+		}
+	}
 
 	function draw(context: Konva.Context, shape: Konva.Shape) {
 		const angleRad = 2 * cutterAngle * Math.PI / 360;
@@ -86,7 +96,15 @@ export default function PinComponent(props: Props) {
 	}
 
 	function onDragEnd({target}: {target: Konva.Node}) {
+		setCursor(target, 'grab');
 		onChange({x: (target.attrs.x - pxBoardStart) / pixelsPerMM});
+	}
+
+	let stroke;
+	if (selected) {
+		stroke = canvasColors.selectedPin;
+	} else if (hovered) {
+		stroke = canvasColors.hoveredPin;
 	}
 
 	return (
@@ -95,10 +113,21 @@ export default function PinComponent(props: Props) {
 			y={viewHeight * .2}
 			sceneFunc={draw}
 			fill={maskColor}
-			stroke={selected ? canvasColors.selectedPin : undefined}
+			stroke={stroke}
 			draggable
 			dragBoundFunc={dragBound}
-			onDragStart={() => onChange({selected: true})}
+			onMouseEnter={({target}: {target: Konva.Node}) => {
+				setHovered(true);
+				setCursor(target, 'grab');
+			}}
+			onMouseLeave={({target}: {target: Konva.Node}) => {
+				setHovered(false);
+				setCursor(target, '');
+			}}
+			onDragStart={({target}: {target: Konva.Node}) => {
+				setCursor(target, 'grabbing');
+				onChange({selected: true});
+			}}
 			onDragEnd={onDragEnd}
 			onClick={() => onChange({selected: !selected})}
 		/>

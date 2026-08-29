@@ -9,6 +9,7 @@ export type CanvasColors = {
 	centerGuide: string,
 	shoulder: string,
 	selectedPin: string,
+	hoveredPin: string,
 	// Drawn over the solid part of the board, so it needs to
 	// contrast with the wood color rather than the background
 	dimension: string,
@@ -27,6 +28,7 @@ export const CANVAS_COLORS: {[theme in EffectiveTheme]: CanvasColors} = {
 		centerGuide: 'black',
 		shoulder: 'black',
 		selectedPin: 'blue',
+		hoveredPin: '#8ab0ee',
 		dimension: '#2a1c0e',
 		topDimension: '#333333',
 		matingBoard: '#8d6b45',
@@ -38,6 +40,7 @@ export const CANVAS_COLORS: {[theme in EffectiveTheme]: CanvasColors} = {
 		centerGuide: '#e0e0e0',
 		shoulder: '#e0e0e0',
 		selectedPin: '#6ea8ff',
+		hoveredPin: '#4d76ad',
 		dimension: '#2a1c0e',
 		topDimension: '#c8c8c8',
 		matingBoard: '#8d6b45',
