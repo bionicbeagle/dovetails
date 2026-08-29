@@ -18,7 +18,7 @@ export default function Instructions() {
 	return (
 		<div className="App">
 			<header className="Instructions-header">
-				<h1>Dovetail Generator: Instructions</h1>
+				<h1>Advanced Dovetail Generator: Instructions</h1>
 				<Link to="/">&lt; Back to app</Link>
 			</header>
 			<div className="Instructions">

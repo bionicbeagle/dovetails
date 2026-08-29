@@ -21,7 +21,7 @@ export default function App() {
 	return (
 		<div className="App">
 			<header className="App-header">
-				Dovetail Generator
+				Advanced Dovetail Generator
 				<UndoRedo />
 			</header>
 			<div className="Body">
